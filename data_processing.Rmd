@@ -1,0 +1,274 @@
+---
+title: "data_processing"
+author: "Group 2"
+date: "3/13/2022"
+output: pdf_document
+---
+
+```{r, include = FALSE, echo = FALSE, message = FALSE, warning = FALSE}
+# Column Descriptions
+
+# COVID-19 Airline Flight Delays
+# 1:YEAR (Year)
+# 2:QUARTER (Jan-Mar, 2: Apr-Jun, 3: Jul-Sep, 4: Oct-Dec)
+# 3:MONTH (Month of Year)
+# 4:DAY_OF_MONTH (Date of Month)
+# 5:DAY_OF_WEEK (Day of Week [1: Monday, 7: Sunday])
+# 6:FL_DATE (Full flight date [M/DD/YYYY])
+# 7:MKT_UNIQUE_CARRIER (AA: American Airlines AS: Alaska Airlines B6: JetBlue DL: Delta Air Lines F9: Frontier Airlines G4: Allegiant Air HA: Hawaiian Airlines NK: Spirit Airlines UA: United Airlines WN: Southwest Airlines)
+# 8:MKT_CARRIER_FL_NUM (Flight Number)
+# 9:TAIL_NUM (Aircraft Tail Number [Usually starts with 'N'])
+# 10:ORIGIN (Flight Departure 3-Letter Airport Abbreviation)
+# 11:ORIGIN_CITY_NAME (Flight Departure City Name)
+# 12:ORIGIN_STATE_ABR (Flight Departure 2-Letter State Abbreviation)
+# 13:ORIGIN_STATE_NM (Flight Departure City, State Abbreviation)
+# 14:DEST (Flight Arrival 3-Letter Airport Abbreviation)
+# 15:DEST_CITY_NAME (Flight Arrival City, State Abbreviation)
+# 16:DEST_STATE_ABR (Flight Arrival 2-Letter State Abbreviation)
+# 17:DEST_STATE_NM (Flight Arrival State Name)
+# 18:CRS_DEP_TIME (Scheduled Departure Time [HHMM] [Single or 2-Digit Values Represent 00:MM, e.g. 3 represents 00:03 or 12:03 AM])
+# 19:DEP_TIME (Actual Departure Time [HHMM])
+# 20:DEP_DELAY (Departure Delay [Difference Between Actual Departure Time and Scheduled Departure Time in Minutes])
+# 21:DEP_DELAY_NEW (Departure Delay Ignoring Early Departures [Listed as 0])
+# 22:DEP_DEL15 (Departure Delay Greater Than 15 Minutes [0: Not Greater Than 15, 1: Greater Than 15])
+# 23:DEP_DELAY_GROUP (Departure Delay in Number of 15-minute increments Rounded Down [e.g. Early Departure (< 0) is a value of -1, 30 or 42 minutes is a value of 2])
+# 24:DEP_TIME_BLK (Scheduled Departure Time in Hourly Block [HHMM])
+# 25:TAXI_OUT (Time between Airplane Taxi from Gate and Takeoff [WHEELS_OFF] Time [in Minutes])
+# 26:WHEELS_OFF (Time of Airplane Takeoff [HHMM])
+# 27:WHEELS_ON (Time of Airplane Landing [HHMM])
+# 28:TAXI_IN (Time between Airplane Taxi to Gate and Landing [WHEELS_ON] Time [in Minutes])
+# 29:CRS_ARR_TIME (Scheduled Arrival Time [HHMM] [Single or 2-Digit Values Represent 00:MM, e.g. 3 represents 00:03 or 12:03 AM])
+# 30:ARR_TIME (Actual Arrival Time [HHMM])
+# 31:ARR_DELAY Arrival Delay (Difference Between Actual Arrival Time and Scheduled Arrival Time in Minutes)
+# 32:ARR_DELAY_NEW (Arrival Delay Ignoring Early Arrivals [Listed as 0])
+# 33:ARR_DEL15 (Arrival Delay Greater Than 15 Minutes [0: Not Greater Than 15, 1: Greater Than 15])
+# 34:ARR_DELAY_GROUP (Arrival Delay in Number of 15-minute increments Rounded Down [e.g. Early Arrival (< 0) is a value of -1, 30 or 42 minutes is a value of 2])
+# 35:ARR_TIME_BLK (Scheduled Arrival Time in Hourly Block [HHMM])
+# 36:CANCELLED (0: Flight Not Cancelled, 1: Flight Cancelled)
+# 37:CANCELLATION_CODE (Reason for Cancellation - if Cancelled, Letter Present [A: Carrier, B: Weather, C: National Aviation System, D: Security])
+# 38:CRS_ELAPSED_TIME (Scheduled Total Flight Time [in Minutes])
+# 39:ACTUAL_ELAPSED_TIME (Actual Total Elapsed Flight Time [in Minutes])
+# 40:AIR_TIME (Actual Total Elapsed Time Airplane in the Air [in Minutes])
+# 41:DISTANCE (Distance Between Departure and Arrival Airports [in Miles])
+# 42:DISTANCE_GROUP (Distance Between Departure and Arrival Airports in Number of 250-Mile increments Rounded Down [e.g. 400 miles is a value of 1])
+# 43:CARRIER_DELAY (Carrier Delay [in Minutes])
+# 44:WEATHER_DELAY (Weather Delay [in Minutes])
+# 45:NAS_DELAY (National Aviation System Delay [in Minutes])
+# 46:SECURITY_DELAY (Security Delay [in Minutes])
+# 47:LATE_AIRCRAFT_DELAY (Late Aircraft Delay [in Minutes])
+
+# NY Times Covid 19 Data: US States
+# 1:date (Date [YYYY-MM-DD])
+# 2:state (State Name)
+# 3:fips (State Federal Information Processing Standards Code)
+# 4:cases (Number of Cases)
+# 5:deaths (Number of Deaths)
+
+```
+
+# Part 1 - Data Processing
+```{r, include = TRUE, echo = FALSE, message = FALSE, warning = FALSE}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(ggpubr)
+
+flights <- read.csv("./jantojun2020.csv")
+us_states <- read.csv("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv")
+```
+
+## 1.2 Filtering Data
+```{r, include = TRUE, echo = FALSE, message = FALSE, warning = FALSE}
+desired_cols <- c(2,3,4,5,6,7,10,13,14,17,18,20,25,28,29,31,36,40,41) # desired columns
+names(flights[,desired_cols]) # columns kept
+flights2 <- flights[,desired_cols] # dataframe with correct columns
+```
+
+## 1.3 Correcting Data Types
+```{r, include = TRUE, echo = FALSE, message = FALSE, warning = FALSE}
+clean_flights0 <- flights2 %>% # correcting column data types
+  mutate(DISTANCE = as.double(DISTANCE)) %>% 
+  mutate(CANCELLED = as.logical(CANCELLED)) %>%
+  mutate(FL_DATE = as.Date(FL_DATE,format = "%m/%d/%y"))
+```
+
+## 1.4 Incomplete Data
+```{r, include = TRUE, echo = FALSE, message = FALSE, warning = FALSE}
+# CANCELLED column leaves NA in other columns
+clean_flights0_length <- nrow(clean_flights0) # number of rows in dataset
+
+# number of not cancelled flights with missing data
+num_na_rows <- length(which(rowSums(is.na(clean_flights0)) > 0 & clean_flights0$CANCELLED == 0)) 
+share_na <- num_na_rows / clean_flights0_length # share of rows with NA values
+
+num_filled_rows <- clean_flights0_length - num_na_rows # number of fully filled rows
+
+share_na # share of rows with missing information
+num_filled_rows # number of rows with full information
+
+bad_rows <- which(rowSums(is.na(clean_flights0)) > 0 & clean_flights0$CANCELLED == 0) # rows  with missing information
+clean_flights1 <- clean_flights0[-bad_rows,] # eliminating incomplete rows and correcting data types
+```
+
+## 1.5 Continuous vs. Discrete Data
+```{r, include = TRUE, echo = FALSE, message = FALSE, warning = FALSE}
+c_clean <- clean_flights1 %>% # non-numeric dates
+            select_if(is.double)
+
+# only continuous columns w/ NA values
+c_clean0 <- clean_flights0 %>% 
+            select_if(is.double) %>%
+            mutate(FL_DATE = as.numeric(clean_flights0$FL_DATE)) 
+
+# only continuous columns w/o NA values
+c_clean1 <- clean_flights1 %>% 
+            select_if(is.double) %>%
+            mutate(FL_DATE = as.numeric(clean_flights1$FL_DATE)) 
+
+# only discrete columns w/o NA values
+d_clean1 <- clean_flights1 %>% select_if(Negate(is.double))
+
+# only continuous columns w/ NA values (randomly sampled)
+sampled_rows <- sample(1:nrow(d_clean1), nrow(d_clean1), replace = FALSE)
+d_clean0 <- clean_flights0[sampled_rows,]
+```
+
+## 1.6 Goodness of Fit Testing
+
+### 1.6.1 Calculations
+```{r, include = TRUE, echo = FALSE, message = FALSE, warning = FALSE}
+#OPTIONAL
+c_pvals <- c() # creating empty vector for p-values
+for(i in 1:(ncol(c_clean1))) { # running Kolmogorov-Smirnov Test (continuous GOF test) between all columns
+  ks_result <- ks.test(c_clean0[,i], c_clean1[,i]) # running K-S Test
+  c_pvals <- append(c_pvals, ks_result$p) # appending p-value to p-value vector
+}
+c_pval_table <- matrix(c_pvals, ncol = length(c_pvals), byrow = FALSE) # creating table with p-values
+colnames(c_pval_table) <- colnames(c_clean1) # matching columns with appropriate column names
+c_pval_table # p-value table
+
+#OPTIONAL
+d_pvals <- c() # creating empty vector for p-values
+for(i in 1:(ncol(d_clean1))) { # running Kolmogorov-Smirnov Test (continuous GOF test) between all columns
+  chisq_result <- chisq.test(d_clean0[,i], d_clean1[,i]) # running Pearson's Chi-Squared Test
+  d_pvals <- append(d_pvals, chisq_result$p.value) # appending p-value to p-value vector
+}
+d_pval_table <- matrix(d_pvals, ncol = length(d_pvals), byrow = FALSE) # creating table with p-values
+colnames(d_pval_table) <- colnames(d_clean1) # matching columns with appropriate column names
+d_pval_table # p-value table
+```
+
+### 1.6.2 Visualization 
+```{r, include = TRUE, echo = FALSE, message = FALSE, warning = FALSE}
+#OPTIONAL
+for (i in 1:(ncol(c_clean1))) { # histograms of all continuous columns: raw vs. processed
+  print(ggplot() + 
+          geom_density(aes(c_clean0[,i]), 
+                       color = "black", 
+                       fill = "black", 
+                       alpha = 0.8) + 
+          geom_density(aes(c_clean1[,i]), 
+                       color = "blue", 
+                       fill = "blue", 
+                       alpha = 0.3) + 
+          labs(title = colnames(c_clean1)[i], 
+               x = "value", 
+               y = "density") +
+          theme(strip.text.x = element_text(size = 4), 
+                axis.text.x = element_blank(), 
+                axis.ticks.x=element_blank()) +
+          annotate("text", -Inf, Inf, label = "Processed", hjust = 0, vjust = 1, color = "blue") + 
+          annotate("text", -Inf, Inf, label = "Raw", hjust = 0, vjust = 3, color = "black"))
+}
+
+#OPTIONAL
+for (i in 1:(ncol(d_clean1))) { # barplots of all discrete columns: raw vs. processed
+  print(ggplot() + 
+          geom_bar(aes(d_clean0[,i]), 
+                   color = "black", 
+                   fill = "black", 
+                   alpha = 0.8) + 
+          geom_bar(aes(d_clean1[,i]), 
+                   color = "blue", 
+                   fill = "blue", 
+                   alpha = 0.3) + 
+          labs(title = colnames(d_clean1)[i], 
+               x = "value", 
+               y = "density") +
+          theme(strip.text.x = element_text(size = 4), 
+                axis.text.x = element_blank(), 
+                axis.ticks.x=element_blank()) +
+          annotate("text", -Inf, Inf, label = "Processed", hjust = 0, vjust = 1, color = "blue") + 
+          annotate("text", -Inf, Inf, label = "Raw", hjust = 0, vjust = 3, color = "black"))
+}
+```
+
+## 1.7 Unifying Data
+
+### 1.7.1 Binding discrete and continuous data
+```{r, include = TRUE, echo = FALSE, message = FALSE, warning = FALSE}
+# PROCESSED DATA FRAME WITH DISCRETE ON LEFT AND CONTINUOUS ON RIGHT
+new_flights <- cbind(d_clean1, c_clean)
+```
+
+### 1.7.2 Correcting additional dataset
+```{r, include = TRUE, echo = FALSE, message = FALSE, warning = FALSE}
+us_states2 <- us_states [,-3] %>% # removing "fips" column and dates after flights dataset
+  mutate(date = as.Date(date)) %>%
+  subset(date <= max(new_flights$FL_DATE))
+
+length(which(rowSums(is.na(us_states2)) > 0)) # checking number of rows with NA values in data set
+```
+
+### 1.7.3 Joining datasets
+```{r, include = TRUE, echo = FALSE, message = FALSE, warning = FALSE}
+# left join by date and ORIGIN STATE
+fulldata <- left_join(new_flights, us_states2, by = c(c("FL_DATE" = "date"), c("ORIGIN_STATE_NM" = "state")))
+
+# removing rows that have cases or deaths as "NA"
+num_na_rows <- length(which(is.na(fulldata$cases) == TRUE | is.na(fulldata$deaths) == TRUE)) 
+bad_rows <- which(is.na(fulldata$cases) == TRUE | is.na(fulldata$deaths) == TRUE)
+fulldata2 <- fulldata[-bad_rows,]
+
+# converting NA values to 0
+fulldata3 <- fulldata
+fulldata3[is.na(fulldata)] <- 0
+
+#REMOVE LEADING HASH IN ONE OF THE LINES BELOW AND RUN, TO CONTRAST DIFFERENT PROCESSED DATAFRAMES
+#fulldata # NA values are retained
+#fulldata2 # NA values are omitted
+#fulldata3 # NA values are converted to 0
+```
+
+## 1.7 Visualization (incomplete)
+```{r, include = TRUE, echo = FALSE, message = FALSE, warning = FALSE}
+#OPTIONAL
+#for (i in 1:(ncol(c_clean1))) { # barplots of all continuous columns: processed
+#  print(ggplot() + 
+#          geom_density(aes(c_clean1[,i]), color = "blue", fill = "blue", alpha = 0.8) +
+#          labs(title = colnames(c_clean1)[i], x = "value", y = "density")) 
+#}
+
+#OPTIONAL
+#for (i in 1:(ncol(d_clean1))) { # barplots of all discrete columns: processed
+#  print(ggplot() + 
+#          geom_bar(aes(d_clean1[,i]), color = "blue", fill = "blue", alpha = 0.8) +
+#          labs(title = colnames(d_clean1)[i], x = "value", y = "density")) 
+#}
+```
+
+```{r, include = TRUE, echo = FALSE, message = FALSE, warning = FALSE}
+ggplot(gather(c_clean1), aes(value)) + # processed continuous data density plots (small multiples)
+  geom_density(color = "blue", fill = "blue", alpha = 0.8) + 
+  facet_wrap(~ key, scales = "free") +
+  theme(strip.text.x = element_text(size = 5), 
+        axis.text.x = element_blank(), 
+        axis.ticks.x = element_blank()) 
+
+ggplot(gather(d_clean1), aes(value)) + # processed discrete data density plots (small multiples)
+  geom_bar(color = "blue", fill = "blue", alpha = 0.8) + 
+  facet_wrap(~ key, scales = "free") +
+  theme(strip.text.x = element_text(size = 5), 
+        axis.text.x = element_blank(), 
+        axis.ticks.x=element_blank())
+```
